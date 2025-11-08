@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle S10 - Funcionário (DEBUG)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Controle S10 - MODO DEBUG</h1>
+                    <p class="text-gray-600" id="nomeUsuario">Carregando...</p>
+                </div>
+                <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                    Sair
+                </button>
+            </div>
+        </div>
+
+        <!-- DEBUG INFO -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+            <h3 class="font-bold text-yellow-800 mb-2">🐛 Informações de Debug</h3>
+            <div id="debugInfo" class="text-xs text-yellow-700 font-mono space-y-1">
+                <p>Aguardando busca de KM...</p>
+            </div>
+        </div>
+
+        <!-- Formulário de Saída -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Registrar Saída</h3>
+            
+            <form id="formSaida" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Destino</label>
+                    <input type="text" id="destino" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">KM Inicial</label>
+                    <input type="number" id="kmInicial" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" required>
+                    <p class="text-xs text-gray-500 mt-1" id="kmInicialHint">Carregando último KM registrado...</p>
+                </div>
+                
+                <button type="button" onclick="testarBuscaKM()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition">
+                    🔍 Testar Busca de KM
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIfQhVgVCJ0BmNnmQX4ivU1W8E6SxvZeo",
+            authDomain: "controle-s10.firebaseapp.com",
+            projectId: "controle-s10",
+            storageBucket: "controle-s10.firebasestorage.app",
+            messagingSenderId: "76976890671",
+            appId: "1:76976890671:web:86b96fef3193148f58b7da"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let funcionarioLogado = null;
+        let debugLog = [];
+
+        function addDebug(msg) {
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+            debugLog.push(`[${timestamp}] ${msg}`);
+            document.getElementById('debugInfo').innerHTML = debugLog.map(l => `<p>${l}</p>`).join('');
+            console.log('[DEBUG]', msg);
+        }
+
+        // Verificar login
+        function verificarLogin() {
+            const dadosLogin = localStorage.getItem('funcionarioLogado');
+            if (!dadosLogin) {
+                window.location.href = 'index.html';
+                return null;
+            }
+            return JSON.parse(dadosLogin);
+        }
+
+        // Logout
+        window.logout = function() {
+            localStorage.removeItem('funcionarioLogado');
+            window.location.href = 'index.html';
+        }
+
+        // Buscar último KM com DEBUG
+        window.testarBuscaKM = async function() {
+            addDebug('🔍 Iniciando busca de último KM...');
+            
+            try {
+                addDebug('📊 Buscando viagens concluídas no Firestore...');
+                
+                const snapshot = await db.collection('viagens')
+                    .where('status', '==', 'concluida')
+                    .get();
+
+                addDebug(`✅ Query executada! Total de documentos: ${snapshot.size}`);
+
+                const kmInicialInput = document.getElementById('kmInicial');
+                const kmInicialHint = document.getElementById('kmInicialHint');
+
+                if (snapshot.empty) {
+                    addDebug('⚠️ Nenhuma viagem concluída encontrada');
+                    kmInicialHint.textContent = 'Nenhuma viagem concluída ainda. Digite o KM atual do veículo.';
+                    kmInicialHint.className = 'text-xs text-gray-500 mt-1';
+                    return;
+                }
+
+                // Processar viagens
+                let viagensArray = [];
+                snapshot.forEach(doc => {
+                    const viagem = doc.data();
+                    addDebug(`📄 Viagem encontrada: ${viagem.funcionarioNome} - KM Final: ${viagem.kmFinal} - Status: ${viagem.status}`);
+                    
+                    if (viagem.kmFinal && viagem.horaChegada) {
+                        viagensArray.push(viagem);
+                    } else {
+                        addDebug(`⚠️ Viagem ignorada (falta kmFinal ou horaChegada)`);
+                    }
+                });
+
+                addDebug(`📋 Total de viagens válidas: ${viagensArray.length}`);
+
+                if (viagensArray.length > 0) {
+                    // Ordenar por KM final (maior primeiro) - odômetro sempre aumenta!
+                    addDebug('📊 Ordenando por MAIOR KM...');
+                    viagensArray.sort((a, b) => {
+                        return b.kmFinal - a.kmFinal;
+                    });
+
+                    const ultimaViagem = viagensArray[0];
+                    const ultimoKM = ultimaViagem.kmFinal;
+                    
+                    addDebug(`✅ Última viagem: ${ultimaViagem.funcionarioNome}`);
+                    addDebug(`✅ Último KM encontrado: ${ultimoKM}`);
+                    addDebug(`✅ Data: ${new Date(ultimaViagem.horaChegada).toLocaleString('pt-BR')}`);
+                    
+                    // Pré-preencher o campo
+                    kmInicialInput.value = ultimoKM;
+                    kmInicialHint.innerHTML = `✅ Último KM registrado: <strong>${ultimoKM}</strong> (${ultimaViagem.funcionarioNome} em ${new Date(ultimaViagem.horaChegada).toLocaleString('pt-BR')})`;
+                    kmInicialHint.className = 'text-xs text-green-600 mt-1';
+                    
+                    addDebug('🎉 KM preenchido com sucesso!');
+                } else {
+                    addDebug('❌ Nenhuma viagem válida (com kmFinal e horaChegada)');
+                    kmInicialHint.textContent = 'Nenhum KM final encontrado. Digite o KM atual do veículo.';
+                    kmInicialHint.className = 'text-xs text-gray-500 mt-1';
+                }
+            } catch (error) {
+                addDebug(`❌ ERRO: ${error.message}`);
+                addDebug(`❌ Código: ${error.code}`);
+                addDebug(`❌ Stack: ${error.stack}`);
+                
+                console.error('Erro completo:', error);
+                
+                const kmInicialHint = document.getElementById('kmInicialHint');
+                kmInicialHint.textContent = 'Erro ao buscar último KM: ' + error.message;
+                kmInicialHint.className = 'text-xs text-red-500 mt-1';
+            }
+        }
+
+        // Inicializar
+        funcionarioLogado = verificarLogin();
+        if (funcionarioLogado) {
+            document.getElementById('nomeUsuario').textContent = `${funcionarioLogado.nome} - ${funcionarioLogado.setor}`;
+            addDebug(`👤 Usuário logado: ${funcionarioLogado.nome}`);
+            addDebug('✅ Firebase inicializado');
+            addDebug('📊 Clique no botão para testar a busca de KM');
+        }
+    </script>
+</body>
+</html>

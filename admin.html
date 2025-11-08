@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle S10 - Administração</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen p-4">
+    
+    <!-- Modal de Login Admin -->
+    <div id="modalLoginAdmin" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-6">
+                <div class="inline-block bg-blue-600 text-white rounded-full p-4 mb-4">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Acesso Administrativo</h2>
+                <p class="text-gray-600 mt-2">Digite a senha de administrador</p>
+            </div>
+
+            <form id="formLoginAdmin" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
+                    <input type="password" id="senhaAdmin" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Digite a senha" required autofocus>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition">
+                    🔓 Entrar
+                </button>
+
+                <a href="index.html" class="block text-center text-sm text-gray-600 hover:text-gray-800 mt-4">
+                    ← Voltar para o login
+                </a>
+            </form>
+
+            <div id="erroLoginAdmin" class="mt-4 text-center text-sm text-red-600 hidden"></div>
+        </div>
+    </div>
+
+    <div id="conteudoAdmin" style="display: none;">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Painel Administrativo</h1>
+                    <p class="text-gray-600">Controle completo da S10</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="location.href='index.html'" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                        🏠 Voltar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cards de Estatísticas -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="bg-blue-100 p-3 rounded-lg mr-4">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">Total de Viagens</p>
+                        <p class="text-2xl font-bold text-gray-800" id="totalViagens">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="bg-green-100 p-3 rounded-lg mr-4">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">KM Total Rodados</p>
+                        <p class="text-2xl font-bold text-gray-800" id="kmTotal">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="bg-orange-100 p-3 rounded-lg mr-4">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">Em Andamento</p>
+                        <p class="text-2xl font-bold text-gray-800" id="emAndamento">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="bg-purple-100 p-3 rounded-lg mr-4">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">Viagens (Mês)</p>
+                        <p class="text-2xl font-bold text-gray-800" id="viagensMes">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros e Ações -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Filtros e Relatórios</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Funcionário</label>
+                    <select id="filtroFuncionario" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Setor</label>
+                    <select id="filtroSetor" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+                    <input type="date" id="filtroDataInicio" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+                    <input type="date" id="filtroDataFim" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select id="filtroStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos</option>
+                        <option value="concluida">Concluídas</option>
+                        <option value="em_andamento">Em andamento</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-3 flex-wrap">
+                <button onclick="aplicarFiltros()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition">
+                    🔍 Filtrar
+                </button>
+                <button onclick="limparFiltros()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition">
+                    ✖️ Limpar
+                </button>
+                <button onclick="exportarPDF()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition">
+                    📄 Exportar PDF
+                </button>
+                <button onclick="mostrarRelatorioMensal()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition">
+                    📊 Relatório Mensal
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabela de Viagens -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Histórico de Viagens</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full" id="tabelaViagens">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Funcionário</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Setor</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destino</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Saída</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chegada</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">KM</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoTabela">
+                        <tr>
+                            <td colspan="8" class="px-4 py-8 text-center text-gray-500">Carregando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div id="modalEdicao" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">Editar Viagem</h3>
+                    <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="formEdicao" class="space-y-4">
+                    <input type="hidden" id="editId">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Funcionário</label>
+                            <input type="text" id="editFuncionario" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Setor</label>
+                            <input type="text" id="editSetor" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Destino</label>
+                        <input type="text" id="editDestino" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data/Hora Saída</label>
+                            <input type="datetime-local" id="editHoraSaida" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data/Hora Chegada</label>
+                            <input type="datetime-local" id="editHoraChegada" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">KM Inicial</label>
+                            <input type="number" id="editKmInicial" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">KM Final</label>
+                            <input type="number" id="editKmFinal" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="editStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="em_andamento">Em andamento</option>
+                            <option value="concluida">Concluída</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                        <textarea id="editObservacoes" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
+                    </div>
+
+                    <div class="flex gap-3 pt-4">
+                        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition">
+                            💾 Salvar Alterações
+                        </button>
+                        <button type="button" onclick="fecharModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Relatório Mensal -->
+    <div id="modalRelatorio" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">Relatório Mensal</h3>
+                    <button onclick="fecharModalRelatorio()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Selecione o mês</label>
+                    <input type="month" id="mesRelatorio" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <button onclick="gerarRelatorioMensal()" class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                        Gerar
+                    </button>
+                </div>
+
+                <div id="conteudoRelatorio" class="space-y-4">
+                    <p class="text-gray-500 text-center py-8">Selecione um mês e clique em Gerar</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div><!-- Fim do conteudoAdmin -->
+
+    <script type="module">
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIfQhVgVCJ0BmNnmQX4ivU1W8E6SxvZeo",
+            authDomain: "controle-s10.firebaseapp.com",
+            projectId: "controle-s10",
+            storageBucket: "controle-s10.firebasestorage.app",
+            messagingSenderId: "76976890671",
+            appId: "1:76976890671:web:86b96fef3193148f58b7da"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let todasViagens = [];
+        let viagensFiltradas = [];
+
+        // Autenticação do Administrador
+        const SENHA_ADMIN = 'admin123'; // Senha padrão - ALTERE NO FIREBASE
+
+        // Verificar se já está logado como admin
+        if (sessionStorage.getItem('adminLogado') === 'true') {
+            mostrarPainelAdmin();
+        }
+
+        // Validar login do admin
+        document.getElementById('formLoginAdmin').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const senhaDigitada = document.getElementById('senhaAdmin').value;
+            const erroDiv = document.getElementById('erroLoginAdmin');
+
+            try {
+                // Buscar senha do admin no Firebase
+                const configDoc = await db.collection('configuracoes').doc('admin').get();
+                
+                let senhaCorreta = SENHA_ADMIN;
+                if (configDoc.exists && configDoc.data().senha) {
+                    senhaCorreta = configDoc.data().senha;
+                }
+
+                if (senhaDigitada === senhaCorreta) {
+                    sessionStorage.setItem('adminLogado', 'true');
+                    mostrarPainelAdmin();
+                } else {
+                    erroDiv.textContent = '❌ Senha incorreta! Tente novamente.';
+                    erroDiv.classList.remove('hidden');
+                    document.getElementById('senhaAdmin').value = '';
+                    document.getElementById('senhaAdmin').focus();
+                }
+            } catch (error) {
+                console.error('Erro ao validar senha:', error);
+                // Se não houver configuração no Firebase, usar senha padrão
+                if (senhaDigitada === SENHA_ADMIN) {
+                    sessionStorage.setItem('adminLogado', 'true');
+                    mostrarPainelAdmin();
+                } else {
+                    erroDiv.textContent = '❌ Senha incorreta! Tente novamente.';
+                    erroDiv.classList.remove('hidden');
+                    document.getElementById('senhaAdmin').value = '';
+                    document.getElementById('senhaAdmin').focus();
+                }
+            }
+        });
+
+        // Mostrar painel admin
+        function mostrarPainelAdmin() {
+            document.getElementById('modalLoginAdmin').style.display = 'none';
+            document.getElementById('conteudoAdmin').style.display = 'block';
+            carregarDados();
+        }
+
+        // Carregar dados
+        async function carregarDados() {
+            try {
+                // Carregar viagens
+                const viagensSnapshot = await db.collection('viagens').orderBy('horaSaida', 'desc').get();
+                todasViagens = viagensSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // Carregar funcionários para filtros
+                const funcionariosSnapshot = await db.collection('funcionarios').orderBy('nome').get();
+                const funcionarioSelect = document.getElementById('filtroFuncionario');
+                const setoresUnicos = new Set();
+
+                funcionariosSnapshot.forEach(doc => {
+                    const func = doc.data();
+                    funcionarioSelect.innerHTML += `<option value="${func.nome}">${func.nome}</option>`;
+                    setoresUnicos.add(func.setor);
+                });
+
+                const setorSelect = document.getElementById('filtroSetor');
+                setoresUnicos.forEach(setor => {
+                    setorSelect.innerHTML += `<option value="${setor}">${setor}</option>`;
+                });
+
+                viagensFiltradas = [...todasViagens];
+                atualizarEstatisticas();
+                renderizarTabela();
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                alert('Erro ao carregar dados. Verifique a configuração do Firebase.');
+            }
+        }
+
+        // Atualizar estatísticas
+        function atualizarEstatisticas() {
+            const totalViagens = viagensFiltradas.length;
+            const kmTotal = viagensFiltradas.reduce((acc, v) => {
+                if (v.kmFinal && v.kmInicial) {
+                    return acc + (v.kmFinal - v.kmInicial);
+                }
+                return acc;
+            }, 0);
+            const emAndamento = viagensFiltradas.filter(v => v.status === 'em_andamento').length;
+            
+            const mesAtual = new Date().getMonth();
+            const anoAtual = new Date().getFullYear();
+            const viagensMes = viagensFiltradas.filter(v => {
+                const data = new Date(v.horaSaida);
+                return data.getMonth() === mesAtual && data.getFullYear() === anoAtual;
+            }).length;
+
+            document.getElementById('totalViagens').textContent = totalViagens;
+            document.getElementById('kmTotal').textContent = kmTotal.toLocaleString('pt-BR');
+            document.getElementById('emAndamento').textContent = emAndamento;
+            document.getElementById('viagensMes').textContent = viagensMes;
+        }
+
+        // Renderizar tabela
+        function renderizarTabela() {
+            const tbody = document.getElementById('corpoTabela');
+            
+            if (viagensFiltradas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Nenhuma viagem encontrada</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            viagensFiltradas.forEach(viagem => {
+                const kmRodados = viagem.kmFinal && viagem.kmInicial 
+                    ? (viagem.kmFinal - viagem.kmInicial) 
+                    : '-';
+
+                const statusClass = viagem.status === 'em_andamento' 
+                    ? 'bg-orange-100 text-orange-700' 
+                    : 'bg-green-100 text-green-700';
+
+                tbody.innerHTML += `
+                    <tr class="border-t border-gray-200 hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-800">${viagem.funcionarioNome}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${viagem.setor}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">${viagem.destino}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${new Date(viagem.horaSaida).toLocaleString('pt-BR')}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${viagem.horaChegada ? new Date(viagem.horaChegada).toLocaleString('pt-BR') : '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">${viagem.kmInicial} → ${viagem.kmFinal || '?'}<br><span class="text-xs text-gray-500">(${kmRodados}${kmRodados !== '-' ? ' km' : ''})</span></td>
+                        <td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${viagem.status === 'em_andamento' ? 'Em andamento' : 'Concluída'}</span></td>
+                        <td class="px-4 py-3">
+                            <button onclick="editarViagem('${viagem.id}')" class="text-blue-600 hover:text-blue-800 mr-2" title="Editar">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="excluirViagem('${viagem.id}')" class="text-red-600 hover:text-red-800" title="Excluir">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Aplicar filtros
+        window.aplicarFiltros = function() {
+            const filtroFunc = document.getElementById('filtroFuncionario').value.toLowerCase();
+            const filtroSetor = document.getElementById('filtroSetor').value.toLowerCase();
+            const filtroDataInicio = document.getElementById('filtroDataInicio').value;
+            const filtroDataFim = document.getElementById('filtroDataFim').value;
+            const filtroStatus = document.getElementById('filtroStatus').value;
+
+            viagensFiltradas = todasViagens.filter(viagem => {
+                let passa = true;
+
+                if (filtroFunc && !viagem.funcionarioNome.toLowerCase().includes(filtroFunc)) {
+                    passa = false;
+                }
+
+                if (filtroSetor && !viagem.setor.toLowerCase().includes(filtroSetor)) {
+                    passa = false;
+                }
+
+                if (filtroDataInicio) {
+                    const dataViagem = new Date(viagem.horaSaida);
+                    const dataInicio = new Date(filtroDataInicio);
+                    if (dataViagem < dataInicio) passa = false;
+                }
+
+                if (filtroDataFim) {
+                    const dataViagem = new Date(viagem.horaSaida);
+                    const dataFim = new Date(filtroDataFim);
+                    dataFim.setHours(23, 59, 59);
+                    if (dataViagem > dataFim) passa = false;
+                }
+
+                if (filtroStatus && viagem.status !== filtroStatus) {
+                    passa = false;
+                }
+
+                return passa;
+            });
+
+            atualizarEstatisticas();
+            renderizarTabela();
+        }
+
+        // Limpar filtros
+        window.limparFiltros = function() {
+            document.getElementById('filtroFuncionario').value = '';
+            document.getElementById('filtroSetor').value = '';
+            document.getElementById('filtroDataInicio').value = '';
+            document.getElementById('filtroDataFim').value = '';
+            document.getElementById('filtroStatus').value = '';
+            viagensFiltradas = [...todasViagens];
+            atualizarEstatisticas();
+            renderizarTabela();
+        }
+
+        // Editar viagem
+        window.editarViagem = function(id) {
+            const viagem = todasViagens.find(v => v.id === id);
+            if (!viagem) return;
+
+            document.getElementById('editId').value = id;
+            document.getElementById('editFuncionario').value = viagem.funcionarioNome;
+            document.getElementById('editSetor').value = viagem.setor;
+            document.getElementById('editDestino').value = viagem.destino;
+            document.getElementById('editHoraSaida').value = new Date(viagem.horaSaida).toISOString().slice(0, 16);
+            document.getElementById('editHoraChegada').value = viagem.horaChegada ? new Date(viagem.horaChegada).toISOString().slice(0, 16) : '';
+            document.getElementById('editKmInicial').value = viagem.kmInicial;
+            document.getElementById('editKmFinal').value = viagem.kmFinal || '';
+            document.getElementById('editStatus').value = viagem.status;
+            document.getElementById('editObservacoes').value = viagem.observacoes || '';
+
+            document.getElementById('modalEdicao').classList.remove('hidden');
+        }
+
+        // Fechar modal
+        window.fecharModal = function() {
+            document.getElementById('modalEdicao').classList.add('hidden');
+        }
+
+        // Salvar edição
+        document.getElementById('formEdicao').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('editId').value;
+            const dadosAtualizados = {
+                destino: document.getElementById('editDestino').value,
+                horaSaida: new Date(document.getElementById('editHoraSaida').value).toISOString(),
+                horaChegada: document.getElementById('editHoraChegada').value 
+                    ? new Date(document.getElementById('editHoraChegada').value).toISOString() 
+                    : null,
+                kmInicial: parseInt(document.getElementById('editKmInicial').value),
+                kmFinal: document.getElementById('editKmFinal').value 
+                    ? parseInt(document.getElementById('editKmFinal').value) 
+                    : null,
+                status: document.getElementById('editStatus').value,
+                observacoes: document.getElementById('editObservacoes').value
+            };
+
+            if (!confirm('Confirma a alteração desta viagem?')) return;
+
+            try {
+                await db.collection('viagens').doc(id).update(dadosAtualizados);
+                alert('Viagem atualizada com sucesso!');
+                fecharModal();
+                carregarDados();
+            } catch (error) {
+                console.error('Erro ao atualizar viagem:', error);
+                alert('Erro ao atualizar viagem.');
+            }
+        });
+
+        // Excluir viagem
+        window.excluirViagem = async function(id) {
+            if (!confirm('Tem certeza que deseja excluir esta viagem? Esta ação não pode ser desfeita.')) return;
+
+            try {
+                await db.collection('viagens').doc(id).delete();
+                alert('Viagem excluída com sucesso!');
+                carregarDados();
+            } catch (error) {
+                console.error('Erro ao excluir viagem:', error);
+                alert('Erro ao excluir viagem.');
+            }
+        }
+
+        // Exportar PDF
+        window.exportarPDF = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+
+            // Título
+            doc.setFontSize(18);
+            doc.text('Relatório de Viagens - S10', 14, 20);
+            
+            doc.setFontSize(10);
+            doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 28);
+            doc.text(`Total de registros: ${viagensFiltradas.length}`, 14, 34);
+
+            // Preparar dados da tabela
+            const dadosTabela = viagensFiltradas.map(v => [
+                v.funcionarioNome,
+                v.setor,
+                v.destino,
+                new Date(v.horaSaida).toLocaleDateString('pt-BR'),
+                v.horaChegada ? new Date(v.horaChegada).toLocaleDateString('pt-BR') : '-',
+                `${v.kmInicial}`,
+                v.kmFinal ? `${v.kmFinal}` : '-',
+                v.kmFinal && v.kmInicial ? `${v.kmFinal - v.kmInicial}` : '-',
+                v.status === 'em_andamento' ? 'Em andamento' : 'Concluída'
+            ]);
+
+            // Gerar tabela
+            doc.autoTable({
+                startY: 40,
+                head: [['Funcionário', 'Setor', 'Destino', 'Saída', 'Chegada', 'KM Ini.', 'KM Fin.', 'KM Rod.', 'Status']],
+                body: dadosTabela,
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [37, 99, 235] }
+            });
+
+            // Salvar PDF
+            doc.save(`relatorio-viagens-${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+
+        // Mostrar modal de relatório mensal
+        window.mostrarRelatorioMensal = function() {
+            const hoje = new Date();
+            const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+            document.getElementById('mesRelatorio').value = mesAtual;
+            document.getElementById('modalRelatorio').classList.remove('hidden');
+        }
+
+        // Fechar modal de relatório
+        window.fecharModalRelatorio = function() {
+            document.getElementById('modalRelatorio').classList.add('hidden');
+        }
+
+        // Gerar relatório mensal
+        window.gerarRelatorioMensal = function() {
+            const mesAno = document.getElementById('mesRelatorio').value;
+            if (!mesAno) {
+                alert('Selecione um mês');
+                return;
+            }
+
+            const [ano, mes] = mesAno.split('-');
+            const dataInicio = new Date(ano, mes - 1, 1);
+            const dataFim = new Date(ano, mes, 0, 23, 59, 59);
+
+            const viagensMes = todasViagens.filter(v => {
+                const data = new Date(v.horaSaida);
+                return data >= dataInicio && data <= dataFim;
+            });
+
+            // Calcular estatísticas
+            const totalViagens = viagensMes.length;
+            const viagensConcluidas = viagensMes.filter(v => v.status === 'concluida').length;
+            const kmTotal = viagensMes.reduce((acc, v) => {
+                if (v.kmFinal && v.kmInicial) {
+                    return acc + (v.kmFinal - v.kmInicial);
+                }
+                return acc;
+            }, 0);
+
+            // Por funcionário
+            const porFuncionario = {};
+            viagensMes.forEach(v => {
+                if (!porFuncionario[v.funcionarioNome]) {
+                    porFuncionario[v.funcionarioNome] = { viagens: 0, km: 0 };
+                }
+                porFuncionario[v.funcionarioNome].viagens++;
+                if (v.kmFinal && v.kmInicial) {
+                    porFuncionario[v.funcionarioNome].km += (v.kmFinal - v.kmInicial);
+                }
+            });
+
+            // Renderizar relatório
+            let html = `
+                <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                    <h4 class="font-bold text-lg mb-2">Resumo - ${new Date(dataInicio).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600">Total de Viagens</p>
+                            <p class="text-2xl font-bold text-blue-600">${totalViagens}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Viagens Concluídas</p>
+                            <p class="text-2xl font-bold text-green-600">${viagensConcluidas}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">KM Total Rodados</p>
+                            <p class="text-2xl font-bold text-purple-600">${kmTotal.toLocaleString('pt-BR')}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <h4 class="font-bold text-lg mb-3">Por Funcionário</h4>
+                    <div class="space-y-2">
+            `;
+
+            Object.entries(porFuncionario)
+                .sort((a, b) => b[1].viagens - a[1].viagens)
+                .forEach(([nome, dados]) => {
+                    html += `
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="font-medium">${nome}</span>
+                            <div class="text-right">
+                                <span class="text-sm text-gray-600">${dados.viagens} viagens</span>
+                                <span class="text-sm text-gray-600 ml-4">${dados.km} km</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+            html += '</div></div>';
+
+            document.getElementById('conteudoRelatorio').innerHTML = html;
+        }
+
+        // A função carregarDados() será chamada após o login bem-sucedido
+    </script>
+</body>
+</html>
