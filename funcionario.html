@@ -12,14 +12,19 @@
     <div class="max-w-4xl mx-auto">
         <!-- Header -->
         <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center flex-wrap gap-3">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-800">Controle S10</h1>
                     <p class="text-gray-600" id="nomeUsuario">Carregando...</p>
                 </div>
-                <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
-                    Sair
-                </button>
+                <div class="flex gap-3">
+                    <button onclick="location.href='agenda.html'" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+                        📅 Ver Agenda
+                    </button>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                        Sair
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -258,6 +263,39 @@
             const kmInicial = parseInt(document.getElementById('kmInicial').value);
             const observacoes = document.getElementById('observacoesSaida').value;
 
+            // Verificar agendamentos próximos (próximas 3 horas)
+            const agora = new Date();
+            const daquiA3Horas = new Date(agora.getTime() + (3 * 60 * 60 * 1000));
+
+            try {
+                const agendamentosSnapshot = await db.collection('agendamentos')
+                    .where('status', '==', 'ativo')
+                    .where('dataInicio', '>=', agora.toISOString())
+                    .where('dataInicio', '<=', daquiA3Horas.toISOString())
+                    .get();
+
+                if (!agendamentosSnapshot.empty) {
+                    const agendamento = agendamentosSnapshot.docs[0].data();
+                    const dataInicio = new Date(agendamento.dataInicio);
+                    
+                    const avisoHtml = `⚠️ ATENÇÃO: Agendamento Próximo\n\n` +
+                        `${agendamento.funcionarioNome} agendou para:\n` +
+                        `📅 ${dataInicio.toLocaleString('pt-BR')}\n` +
+                        `📍 ${agendamento.destino}\n` +
+                        `📞 ${agendamento.telefone}\n\n` +
+                        `Você ainda pode pegar o carro.\n` +
+                        `Deseja prosseguir?`;
+                    
+                    if (!confirm(avisoHtml)) {
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao verificar agendamentos:', error);
+                // Se der erro, continua normal
+            }
+
+            // Verificar se pode registrar saída
             if (!confirm('Confirma o registro de saída?')) return;
 
             try {
